@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zs.pms.dao.TarticleDao">
+	<resultMap type="Tarticle"  id="articlemap">
+		<association property="channel" column="channel" select="getChannel" />
+	</resultMap>
+	<!-- 获取上级栏目列表 -->
+	<select id="getChannel" parameterType="int" resultType="Tchannel">
+		select *
+		from tchannel where id=#{channel}
+	</select>
+	<!-- 获取总数 -->
+	<select id="queryConunt" parameterType="QueryArticle" resultType="int">
+		select count(1) from tarticle
+		<include refid="where"></include>
+	</select>
+	
+	<!-- 按条件查询文章 -->
+	<select id="queryByCon" parameterType="QueryArticle" resultType="Tarticle">
+		<include refid="selector" />
+		<include refid="where" />
+		<include refid="order" />
+	</select>
+	<!-- 分页查询文章 -->
+	<select id="queryByPage" parameterType="QueryArticle" resultType="Tarticle">
+		select * from
+		(select rownum rn,t.*
+		from(
+		<include refid="selector" />
+		<include refid="where" />
+		<include refid="order" />
+		)t)t1
+		<include refid="page" />
+	</select>
+	<!-- SQL片段 -->
+	<!-- 查什么 -->
+	<sql id="selector">
+		select * from tarticle
+	</sql>
+	<!-- 查询条件 -->
+	<sql id="where">
+		<where>
+			<if test="title!=null and title!='' ">
+				and title=#{title}
+			</if>
+			<if test="author!=null and author!='' ">
+				and author=#{author}
+			</if>
+		</where>
+	</sql>
+	<!-- 排序 -->
+	<sql id="order">
+		order by id desc
+	</sql>
+	<!-- 分页 -->
+	<sql id="page">
+		<where>
+			<if test="start!=0">
+				and rn&gt;=#{start}
+			</if>
+			<if test="end!=0">
+				and rn&lt;=#{end}
+			</if>
+		</where>
+	</sql>
+	<!-- 删除用户 -->
+	<select id="queryById" parameterType="int" resultMap="articlemap">
+		select *
+		from tarticle where id=#{id}
+	</select>
+	<!-- 批量删除用户 -->
+	<delete id="deleteById">
+		delete from tarticle where id in
+		<foreach collection="array" item="int" separator="," open="("
+			close=")">
+			#{id}
+		</foreach>
+	</delete>
+	<!-- 修改用户信息 -->
+	<update id="update" parameterType="Tarticle">
+		update tarticle
+		<set>
+			<trim suffixOverrides=",">
+				<if test="title!=null and title!=''">
+					title=#{title},
+				</if>
+				<if test="content!=null and content!=''">
+					content=#{content},
+				</if>
+				<if test="author!=null and author!=''">
+					author=#{author},
+				</if>
+				<if test="crtime!=null">
+					crtime=#{crtime},
+				</if>
+				<if test="channel!=null">
+					channel=#{channel},
+				</if>
+				<if test="isremod!=0">
+					isremod=#{isremod},
+				</if>
+				<if test="ishot!=0">
+					ishot=#{ishot},
+				</if>
+				<if test="updator!=0">
+					updator=#{updator},
+				</if>
+				updatime=sysdate,
+			</trim>
+		</set>
+		where id=#{id}
+	</update>
+	<!-- 添加用户 -->
+	<insert id="insert" parameterType="Tarticle">
+		<selectKey keyProperty="id" order="BEFORE" resultType="int">
+			select seq_tarticle.nextval from dual
+		</selectKey>
+		insert into
+		tarticle(id,title,content,author,crtime,channel,isremod,ishot)
+		values(#{id},#{title},#{content},#{author},sysdate,#{channel.id},#{isremod},#{ishot})
+	</insert>
+</mapper>

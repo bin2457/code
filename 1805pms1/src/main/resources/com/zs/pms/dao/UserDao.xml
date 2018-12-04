@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zs.pms.dao.UserDao">
+
+	<resultMap type="TUser" id="usermap">
+	<id column="id" property="id"/>
+	<!-- 主键 -->
+	<!--  -->
+		<association property="dept" column="dept" select="getDept" />
+		<collection property="permission" column="id" select="getPermissions"
+			ofType="com.zs.pms.po.TPermission" />
+	</resultMap>
+
+	<!-- type:最外面的对象 id 自己命名的 -->
+	<resultMap type="TUser" id="usermap2">
+		<!-- 一对一关联 -->
+		<association property="dept" column="dept" select="getDept" />
+	</resultMap>
+	<!-- 获取权限列表 -->
+	<select id="getPermissions" parameterType="int"
+		resultType="com.zs.pms.po.TPermission">
+		select * from tpermission where id in(select pid from
+		trolepermission where
+		rid in (
+		select rid from tuserrole where
+		usid=#{id}
+		))order by id
+	</select>
+	<!-- 获取部门列表 -->
+	<select id="getDept" parameterType="int" resultType="TDept">
+		select *
+		from tdep where id=#{dept}
+	</select>
+	<!-- 获取总数 -->
+	<select id="queryConunt" parameterType="QueryUser" resultType="int">
+		select count(1) from tuser
+		<include refid="where"></include>
+	</select>
+	<!-- 按条件查询用户 -->
+	<select id="queryByCon" parameterType="QueryUser" resultType="TUser">
+		<include refid="selector" />
+		<include refid="where" />
+		<include refid="order" />
+	</select>
+	<!-- 分页查询用户 -->
+	<select id="queryByPage" parameterType="QueryUser" resultMap="usermap2">
+		select * from
+		(select rownum rn,t.*
+		from(
+		<include refid="selector" />
+		<include refid="where" />
+		<include refid="order" />
+		)t)t1
+		<include refid="page" />
+	</select>
+	<!-- SQL片段 -->
+	<!-- 查什么 -->
+	<sql id="selector">
+		select * from tuser
+	</sql>
+	<!-- 查询条件 -->
+	<sql id="where">
+		<where>
+			<if test="loginname!=null and loginname!='' ">
+				and loginname=#{loginname}
+			</if>
+			<if test="password!=null and password!='' ">
+				and password=#{password}
+			</if>
+			<if test="isenabled!=0">
+				and isenabled=#{isenabled}
+			</if>
+		</where>
+	</sql>
+	<!-- 排序 -->
+	<sql id="order">
+		order by id desc
+	</sql>
+	<!-- 分页 -->
+	<sql id="page">
+		<where>
+			<if test="start!=0">
+				and rn&gt;=#{start}
+			</if>
+			<if test="end!=0">
+				and rn&lt;=#{end}
+			</if>
+		</where>
+	</sql>
+	
+	<select id="queryById" parameterType="int" resultMap="usermap"> 
+	select * from tuser where id=#{id}
+	</select>
+	<!-- 批量删除用户 -->
+	<delete id="deleteById">
+		delete from tuser where id in
+	 <foreach collection="array" item="id" separator="," open="("
+			close=")">
+			#{id}
+		</foreach>
+	</delete>
+	<!-- 删除用户 -->
+	<delete id="delete" parameterType="int">
+	delete from tuser where id=#{id}
+	</delete>
+	<!-- 修改用户信息 -->
+	<update id="update" parameterType="TUser">
+		update tuser
+		<set>
+			<trim suffixOverrides=",">
+				<if test="realname!=null and realname!=''">
+					realname=#{realname},
+				</if>
+				<if test="sex!=null and sex!=''">
+					sex=#{sex},
+				</if>
+				<if test="birthday!=null">
+					birthday=#{birthday},
+				</if>
+				<if test="dept!=null">
+					dept=#{dept.id},
+				</if>
+				<if test="email!=null and email!=''">
+					email=#{email},
+				</if>
+				<if test="isenabled!=0">
+					isenabled=#{isenabled},
+				</if>
+				<if test="password!=null and password!=''">
+					password=#{password},
+				</if>
+				<if test="updator!=0">
+					updator=#{updator},
+				</if>
+				<if test="picurl!=null and picurl!=''">
+					picurl=#{picurl},
+				</if>
+				updatime=sysdate,
+			</trim>
+		</set>
+		where id=#{id}
+	</update>
+	<!-- 添加用户 -->
+	<insert id="insert" parameterType="TUser">
+		<selectKey keyProperty="id" order="BEFORE" resultType="int">
+			select seq_tuser.nextval from dual
+		</selectKey>
+		insert into
+		tuser(id,loginname,password,sex,birthday,email,dept,realname,creator,creatime,picurl,isenabled)
+		values(#{id},#{loginname},#{password},#{sex},#{birthday},#{email},#{dept.id},#{realname},#{creator},sysdate,#{picurl},1)
+	</insert>
+</mapper>
